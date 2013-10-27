@@ -1,0 +1,3 @@
+[submodule "confuse"]
+	path = confuse
+	url = git://git.sv.gnu.org/confuse.git
