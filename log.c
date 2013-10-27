@@ -9,6 +9,8 @@ log_level_get(char *tag)
 	return tag ? LOG_LEVEL_DEFAULT : __log_level;
 }
 
+#include <assert.h>
+
 inline void
 log_level_set(enum log_level_t level)
 {
@@ -20,7 +22,7 @@ log_level_set(enum log_level_t level)
 #include <stdio.h>
 
 static void
-__standard_log(FILE *dst, const char *tag, const char *fmt, va_list *args)
+__std_log(FILE *dst, const char *tag, const char *fmt, va_list *args)
 {
 	assert(dst && tag && fmt && args);
 	fputc('[', dst);
@@ -36,11 +38,11 @@ __standard_log(FILE *dst, const char *tag, const char *fmt, va_list *args)
 }
 
 inline void
-__log(enum log_level_t lvl, const char *info, const char *fmt, ...)
+__log_wrap(enum log_level_t lvl, const char *info, const char *fmt, ...)
 {
 	va_list args;
 	const char *slug;
-	assert(fmt);
+	assert(info && fmt);
 	if (lvl < __log_level) {
 		return;
 	}
@@ -49,7 +51,7 @@ __log(enum log_level_t lvl, const char *info, const char *fmt, ...)
 	case LOG_LEVEL_E: slug = "ERROR"; break;
 	default: slug = info;
 	}
-	va_begin(args, fmt);
-	__standard_log(LOG_TARGET, slug, fmt, &args);
+	va_start(args, fmt);
+	__std_log(LOG_TARGET, slug, fmt, &args);
 	va_end(args);
 }

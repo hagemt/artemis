@@ -1,7 +1,8 @@
-#ifndef __SET_H__
-#define __SET_H__
+#ifndef __CRAWL_H__
+#define __CRAWL_H__
 
 #include <stddef.h>
+#include <time.h>
 
 typedef char char_t;
 
@@ -16,7 +17,7 @@ typedef enum type_t TYPE;
 struct entry_t {
 	char_t *path; /* <-- only required field */
 	time_t atime, ctime, mtime;
-	off_t size;
+	size_t size; /* FIXME make off_t */
 	TYPE type;
 	unsigned char *data, *hash, *sum;
 };
@@ -37,7 +38,7 @@ extern void
 visit(char_t *, callback_t);
 
 #define MAX_LEN 4096
-#define DAT_LEN  512
+#define DAT_LEN (sizeof(unsigned long) << 8)
 
 struct node_t {
 	struct entry_t *head;

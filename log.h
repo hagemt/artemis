@@ -17,6 +17,7 @@ enum log_level_t {
 	LOG_LEVEL_I    = 0x40,
 	LOG_LEVEL_V    = 0x20,
 	LOG_LEVEL_D    = 0x10,
+	LOG_LEVEL_NUM
 };
 
 extern enum log_level_t
@@ -45,6 +46,25 @@ log_level_set(enum log_level_t);
 
 /* Log aliases */
 
-#define LOG(X) fprintf(LOG_TARGET, "[%s] %s (%s)\n", LOG_TAG, X, __PRETTY_FUNCTION__);
+#define LOGS(X) \
+	fprintf(LOG_TARGET, "[%s] %s (%s)\n", LOG_TAG, X, __PRETTY_FUNCTION__);
+
+extern void
+__log_wrap(enum log_level_t, const char *, const char *, ...);
+
+#define LOG(LVL, FMT, ...) __log_wrap(LVL, LOG_TAG, FMT, __VA_ARGS__)
+#define LOGF(FMT, ...) LOG(LOG_LEVEL_F, FMT, __VA_ARGS__)
+#define LOGE(FMT, ...) LOG(LOG_LEVEL_E, FMT, __VA_ARGS__)
+#define LOGW(FMT, ...) LOG(LOG_LEVEL_W, FMT, __VA_ARGS__)
+#define LOGI(FMT, ...) LOG(LOG_LEVEL_I, FMT, __VA_ARGS__)
+#define LOGV(FMT, ...) LOG(LOG_LEVEL_V, FMT, __VA_ARGS__)
+#define LOGD(FMT, ...) LOG(LOG_LEVEL_D, FMT, __VA_ARGS__)
+
+/* Log functions */
+
+typedef void (*log_function_t)();
+
+extern log_function_t
+load(char *);
 
 #endif /* __LOG_H__ */
