@@ -1,9 +1,8 @@
-#ifndef __RECORD_H__
-#define __RECORD_H__
+#ifndef __LART_RECORD_H__
+#define __LART_RECORD_H__
 
 #include <libcalg/bloom-filter.h>
 #include <libcalg/hash-table.h>
-#include <libcalg/set.h>
 
 /*
  * Holds references to active entries.
@@ -18,21 +17,31 @@ struct record_t {
 	HashTable *table;
 };
 
-typedef struct record_t RECORD;
+typedef struct record_t Record;
 
-extern RECORD *
+extern Record *
 malloc_record(size_t);
 
 extern void
-free_record(RECORD *);
+free_record(Record *);
 
-typedef void (*VISITOR)(void *);
-/* typedef void *(*combine_t)(void *, void *); */
+/* Bulk Operations */
 
-extern void
-visit_sets(RECORD *, VISITOR);
+typedef void (*Visitor)(void *);
 
 extern void
-visit_each(RECORD *, VISITOR);
+visit_sets(Record *, Visitor);
 
-#endif /* __RECORD_H__ */
+extern void
+visit_each(Record *, Visitor);
+
+typedef void * (*Joiner)(void *, void *);
+
+/* The whole point: */
+
+#include "libartemis/entry.h"
+
+extern int
+record_entry(Record *, Entry *);
+
+#endif /* __LART_RECORD_H__ */

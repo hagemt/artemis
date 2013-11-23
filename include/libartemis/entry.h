@@ -1,50 +1,46 @@
-#ifndef __CRAWL_H__
-#define __CRAWL_H__
+#ifndef __LART_ENTRY_H__
+#define __LART_ENTRY_H__
 
 #include <stddef.h>
 #include <time.h>
 
-typedef char char_t;
+#define LART_ENTRY_DLEN (sizeof(unsigned long) << 6)
 
 enum type_t {
-	REGULAR   = 0x02,
-	DIRECTORY = 0x01,
-	OTHER     = 0x00
+	LART_FTYPE_REG = 0x02,
+	LART_FTYPE_DIR = 0x01,
+	LART_FTYPE_MAX = 0x00
 };
 
-typedef enum type_t TYPE;
-
 struct entry_t {
-	char_t *path; /* <-- only required field */
+	char *path; /* <-- only required field, TODO doc */
+	size_t size; /* FIXME make this off_t, or larger type */
+	enum type_t type;
 	time_t atime, ctime, mtime;
-	size_t size; /* FIXME make off_t */
-	TYPE type;
 	unsigned char *data, *hash, *sum;
 };
 
-typedef struct entry_t ENTRY;
-
-/*
-extern ENTRY *
-malloc_entry(char_t *);
-*/
-
-extern void
-free_entry(ENTRY *);
-
-typedef void (*callback_t)(ENTRY *);
-
-extern void
-visit(char_t *, callback_t);
-
-#define MAX_LEN 4096
-#define DAT_LEN (sizeof(unsigned long) << 8)
-
+/* TODO(teh) remove...?
 struct node_t {
 	struct entry_t *head;
 	struct node_t *tail;
 };
+typedef struct node_t Node;
+*/
 
-typedef struct node_t NODE;
+typedef enum type_t Type;
+typedef struct entry_t Entry;
+typedef void (*Callback)(Entry *);
 
-#endif /* __SET_H__ */
+/* Public API */
+
+extern Entry *
+malloc_entry(char *);
+
+extern void
+free_entry(Entry *);
+
+extern void
+visit(char *, Callback);
+
+#endif /* __LART_ENTRY_H__ */
