@@ -3,17 +3,24 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <dirent.h>
-#include <unistd.h>
-
-#include "crawl.h"
+LART_PUBLIC void
+free_entry(Entry *entry)
+{
+	assert(entry && entry->path);
+	free(entry->path);
+	entry->path = NULL;
+	if (entry->data) {
+		free(entry->data);
+	}
+	free(entry);
+	/* TODO(teh) other fields? */
+}
 
 static void
-__data_entry(struct entry_t *entry)
+__ensure_data(Entry *entry)
 {
-	FILE *file; size_t bytes;
+	FILE *file;
+	size_t bytes;
 	assert(entry && entry->data);
 	if (!(file = fopen(entry->path, "r"))) {
 		/* FIXME fopen failed */
@@ -28,8 +35,14 @@ __data_entry(struct entry_t *entry)
 	}
 }
 
-inline struct entry_t *
-malloc_entry(char_t *path, struct stat *info)
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <unistd.h>
+
+/* FIXME(teh) fix portability for header */
+LART_PUBLIC Entry *
+malloc_entry(char *path, struct stat *info)
 {
 	size_t len;
 	struct entry_t *entry;
@@ -40,7 +53,7 @@ malloc_entry(char_t *path, struct stat *info)
 	}
 	memset(entry, 0x00, sizeof(struct entry_t));
 	/* copy the path over */
-	len = strnlen(path, MAX_LEN) + 1;
+	len = strnlen(path, LART_PATH_MAX) + 1;
 	if ((entry->path = malloc(len * sizeof(char_t)))) {
 		strncpy(entry->path, path, len);
 		entry->path[len - 1] = '\0';
@@ -58,62 +71,7 @@ malloc_entry(char_t *path, struct stat *info)
 		entry->type = OTHER;
 	}
 	if ((entry->data = malloc(DAT_LEN))) {
-		__data_entry(entry);
+		__ensure_data(entry);
 	}
 	return entry;
 }
-
-inline void
-free_entry(struct entry_t *entry)
-{
-	assert(entry && entry->path);
-	free(entry->path);
-	entry->path = NULL;
-	if (entry->data) {
-		free(entry->data);
-	}
-	free(entry);
-	/* TODO other fields? */
-}
-
-/* non-entry */
-
-static void
-__expand(char_t *path, callback_t func)
-{
-	DIR *dir;
-	char_t buffer[MAX_LEN];
-	struct dirent *entry;
-	if (!(dir = opendir(path))) {
-		/* FIXME opendir failed */
-		return;
-	}
-	while ((entry = readdir(dir))) {
-		/* FIXME more elegantly? */
-		if (entry->d_name[0] != '.') {
-			snprintf(buffer, MAX_LEN, "%s/%s", path, entry->d_name);
-			buffer[MAX_LEN - 1] = '\0';
-			visit(buffer, func);
-		}
-	}
-	if (closedir(dir)) {
-		/* FIXME closedir failed */
-	}
-}
-
-inline void
-visit(char_t *path, callback_t func)
-{
-	/* FIXME this is not safe: */
-	static struct stat info;
-	if (lstat(path, &info)) {
-		/* FIXME lstat failed */
-		return;
-	}
-	if (S_ISREG(info.st_mode)) {
-		(*func)(malloc_entry(path, &info));
-	} else if (S_ISDIR(info.st_mode)) {
-		__expand(path, func);
-	}
-}
-

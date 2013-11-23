@@ -5,6 +5,6 @@
 #define LART_PRIVATE
 #define LART_PUBLIC extern
 
-#define LART_PLEN_MAX (4096)
+#define LART_PATH_MAX (4096)
 
 #endif /* __LART_GLOBAL_H__ */
