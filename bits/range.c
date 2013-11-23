@@ -24,7 +24,7 @@ __range(type_t *p, size_t i, size_t n, succ inc, type_t a, type_t b, op act)
 #include <stdlib.h>
 #include <string.h>
 
-static inline type_t
+static type_t
 __next(type_t t)
 {
 	return ++t;
@@ -43,7 +43,7 @@ __print(type_t *p, size_t n)
 #define MIN '0'
 #define MAX '1'
 
-inline void
+extern void
 range(type_t *p, size_t n)
 {
 	memset(p, MIN, n);

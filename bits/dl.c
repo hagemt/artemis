@@ -71,7 +71,7 @@ drop(char *name)
 {
 	struct dot_t *prev, *next;
 	assert(name);
-	for (prev = &__root; next = prev->tail; prev = next) {
+	for (prev = &__root; (next = prev->tail); prev = next) {
 		if (strncmp(next->head->name, name, LOAD_MAX) == 0) {
 			__unload(prev);
 			return 0;
@@ -171,10 +171,12 @@ static int
 __handle(char *line)
 {
 	if (!line || *line == '\0' || *line == '\n') {
+		if (line) free(line);
 		return 0;
 	}
 	__check(line);
 	__dump(stderr);
+	free(line);
 	return 1;
 }
 
