@@ -1,0 +1,18 @@
+# At the top level, we have the config blocks
+sample {
+
+
+
+# FQN is sample.level
+level=ERROR
+
+target.ERROR=error.log
+target.WARN=
+
+# Alternatively:
+target {
+	ERROR=error.log
+	WARN=warn.log
+}
+
+}
