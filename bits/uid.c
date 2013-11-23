@@ -6,27 +6,43 @@
 
 #include <sys/types.h>
 #include <unistd.h>
+
+#include "log.h"
+
+#define LOG_UID(CODE, NOTE) LOG3("INFO", itoa(CODE, NULL, 10), NOTE)
+#define LOG_ERRNO(X) LOG3("ERROR", X, strerror(errno))
+
+static uid_t __getuid(int);
+static void __setuid(uid_t);
+
+#define REAL 0
 #define RUID 0
-#ifndef _ /* FIXME */
-#define _(X) (X)
-#endif /* gettext */
 
 int
 main(void)
 {
-	uid_t uid = getuid();
-	assert(uid);
-	fprintf(stdout, "[%s] uid '%d' (%s)\n",
-			_("INFO"), uid, _("before setuid"));
-	if (setuid(RUID)) {
-		fprintf(stderr, "[%s] uid '%d' (%s)\n",
-				_("ERROR"), RUID, strerror(errno));
-	}
-	fprintf(stdout, "[%s] uid '%d' (%s)\n",
-			_("INFO"), getuid(), _("after setuid"));
-	if (setuid(uid)) {
-		fprintf(stderr, "[%s] uid '%d' (%s)\n",
-				_("WARNING"), getuid(), strerror(errno));
-	}
+	uid_t uid = __getuid(REAL);
+	LOG_UID(uid, "before setuid");
+	__setuid(RUID);
+	LOG_UID(geteuid(), "after setuid");
+	__setuid(uid);
 	return EXIT_SUCCESS;
 }
+
+/* very simple helpers */
+
+static uid_t
+__getuid(int real)
+{
+	return real ? getuid() : geteuid();
+}
+
+static void
+__setuid(uid_t uid)
+{
+	assert(uid >= 0);
+	if (setuid(uid)) {
+		LOG_ERRNO(uid);
+	}
+}
+
