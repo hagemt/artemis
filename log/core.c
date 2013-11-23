@@ -1,57 +1,65 @@
+/* This file is part of: libslf4c
+ *
+ * libslf4c is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as
+ * published by the Free Software Foundation, either version 3 of
+ * the License, or (at your option) any later version.
+ *
+ * libslf4c is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with libslf4c. <http://www.gnu.org/licenses/>
+ */
 #include "log.h"
 
-static enum log_level_t
-__log_level = LOG_LEVEL;
-
-inline enum log_level_t
-log_level_get(char *tag)
-{
-	return tag ? LOG_LEVEL_DEFAULT : __log_level;
-}
-
 #include <assert.h>
-
-inline void
-log_level_set(enum log_level_t level)
-{
-	assert(!(LOG_LEVEL_F < level));
-	__log_level = level;
-}
-
 #include <stdarg.h>
 #include <stdio.h>
 
-static void
-__std_log(FILE *dst, const char *tag, const char *fmt, va_list *args)
-{
-	assert(dst && tag && fmt && args);
-	fputc('[', dst);
-	fputs(tag, dst);
-	fputc(']', dst);
-	fputc(' ', dst);
-	vfprintf(dst, fmt, *args);
-	fputc(' ', dst);
-	fputc('(', dst);
-	fputs(__PRETTY_FUNCTION__, dst);
-	fputc(')', dst);
-	fputc('\n', dst);
-}
+/* PUBLIC API */
 
-inline void
-__log_wrap(enum log_level_t lvl, const char *info, const char *fmt, ...)
+LOG_EXTERNAL void
+__log_wrapper(LogLevel lvl, const char *info, const char *fmt, ...)
 {
 	va_list args;
 	const char *slug;
 	assert(info && fmt);
-	if (lvl < __log_level) {
+	if (lvl < log_level_get(info)) {
 		return;
 	}
+
+	/* Determine the slug, based upon level */
 	switch (lvl) {
 	case LOG_LEVEL_F: slug = "FATAL"; break;
 	case LOG_LEVEL_E: slug = "ERROR"; break;
+	case LOG_LEVEL_W: slug = "WARN"; break;
+	case LOG_LEVEL_I: slug = "INFO"; break;
+	case LOG_LEVEL_V: slug = "VERBOSE"; break;
 	default: slug = info;
 	}
-	va_start(args, fmt);
-	__std_log(LOG_TARGET, slug, fmt, &args);
-	va_end(args);
+
+	/* Determine the logging function */
+	log_func_t f = log_func_get(slug);
+	if (f) {
+		va_start(args, fmt);
+		/* FIXME(teh) make this retargetable */
+		(*f)(LOG_TARGET, slug, fmt, &args);
+		va_end(args);
+	} else {
+		/* FIXME(teh) what do? */
+	}
+
+	/* TODO(teh) determine if this is the right decision... */
+#ifndef NDEBUG
+	fputc(' ', LOG_TARGET);
+	fputc('(', LOG_TARGET);
+	fputs(info, LOG_TARGET);
+	fputc(')', LOG_TARGET);
+#endif /* DEBUG */
+	/* Always finish with a newline */
+	fputc('\n', LOG_TARGET);
+	/* FIXME(teh) \r support? */
 }
