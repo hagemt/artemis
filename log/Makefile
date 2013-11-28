@@ -26,8 +26,28 @@ clean:
 	@$(RM) -fv $(LIB_OBJECTS)
 	@$(SAY) "cleaning library files"
 	@$(RM) -fv $(LIB_STATIC) $(LIB_SHARED)
+	@$(SAY) "cleaning test files"
+	@$(RM) -fv test/*.o test/*.so test/functions test/size
 
-.PHONY: all clean
+test: test/libtest.so test/libslf4c.so test/functions test/size
+
+.PHONY: all clean test
+
+test/size: $(LIB_SHARED) test/size.o
+	@$(SAY) "$(LIB_SHARED)" "->" "$@"
+	@$(CC) $(CFLAGS) -L . -lslf4c test/size.o -o $@ -ldl
+
+test/libslf4c.so: $(LIB_SHARED)
+	@$(SAY) "../$(LIB_SHARED)" "->" "test/$(LIB_SHARED)"
+	@ln -s "../$(LIB_SHARED)" "test/$(LIB_SHARED)"
+
+test/libtest.so: test/libtest.o
+	@$(SAY) "LD" "$@"
+	@$(CC) $(CFLAGS) -shared $^ -o $@
+
+test/functions: test/test.functions.o
+	@$(SAY) "$(LIB_SHARED)" "->" "$@"
+	@$(CC) $(CFLAGS) -L . -lslf4c $< -o $@ -ldl
 
 $(LIB_STATIC): $(LIB_OBJECTS)
 	@$(SAY) "AR" "$@"
@@ -39,4 +59,4 @@ $(LIB_SHARED): $(LIB_OBJECTS)
 
 %.o: %.c
 	@$(SAY) "CC" "$<"
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -I . -c $< -o $@

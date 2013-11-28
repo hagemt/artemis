@@ -16,7 +16,7 @@ struct __module_list_t {
 	struct __module_list_t *tail;
 };
 
-#define NODE_EMPTY ((Node) { NULL, NULL })
+#define NODE_EMPTY { NULL, NULL }
 
 typedef struct __module_data_t Module;
 typedef struct __module_list_t Node;

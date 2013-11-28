@@ -20,7 +20,7 @@ hd(FILE *file, const char *label, void *data, size_t bytes)
 		fprintf(file, "%08X  ", (unsigned int) goffset);
 		for (loffset = 0; loffset < HD_LINE_STRIDE; ++loffset) {
 			if (goffset + loffset < bytes) {
-				c = * (char *) (data + goffset + loffset);
+				c = * (char *) ((unsigned char *) data + goffset + loffset);
 				fprintf(file, "%X%X", (c & 0xF0) >> 4, (c & 0x0F) >> 0);
 				fputc(' ', file);
 			} else {
@@ -31,7 +31,7 @@ hd(FILE *file, const char *label, void *data, size_t bytes)
 		fputc('|', file);
 		for (loffset = 0; loffset < HD_LINE_STRIDE; ++loffset) {
 			if (goffset + loffset < bytes) {
-				c = * (char *) (data + goffset + loffset);
+				c = * (char *) ((unsigned char *) data + goffset + loffset);
 				fputc((c < ' ' || c > '~') ? '.' : c, file);
 			}
 		}

@@ -25,7 +25,7 @@ __reset(void) { __tests_passed = 0; }
 
 /* allow redefinition of the logging alias */
 #ifndef LOGT
-#define LOGT LOGV
+#define LOGT LOGD
 #endif /* !LOGT */
 
 /* internal: run precondition */

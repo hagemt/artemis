@@ -59,13 +59,13 @@ test_log_function_calls(void)
 
 	/* 40 */
 	f = log_function_load(SYMBOL_CALL);
-	TEST_FATAL(LOG_IS_HANDLE(f), LOG_CALL_HANDLE(f),
+	TEST_FATAL(LOG_IS_HANDLE(f), LOG_CALL_HANDLE(f, NULL),
 			"call to valid handle"); /* FIXME(teh) allow survival? */
 	(void) log_function_unload(SYMBOL_CALL);
 
 	/* 100 */
 	g = log_function_load(SYMBOL_NULL);
-	TEST_FATAL(!LOG_IS_HANDLE(g), LOG_CALL_HANDLE(g),
+	TEST_FATAL(!LOG_IS_HANDLE(g), LOG_CALL_HANDLE(g, NULL),
 			"call to invalid handle"); /* FIXME(teh) allow survival? */
 }
 
@@ -77,6 +77,7 @@ test_log_function_calls(void)
 int
 main(void)
 {
+	log_level_set(LOG_LEVEL_VERBOSE);
 	/* call each test-suite */
 	test_log_function_load_unload();
 
