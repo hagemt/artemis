@@ -1,13 +1,17 @@
+#include "libartemis/record.h"
 
-/* misc utils */
-
-LART_INLINE static size_t
+__lookup(Record *r, Entry *e, Set **s) {
+LART_PRIVATE size_t
 __filter_size(size_t numel) {
 	/* TODO optimize based on numel */
 	return numel;
 }
 
+#include <libcalg/bloom-filter.h>
+#include <libcalg/hash-table.h>
 #include <libcalg/set.h>
+
+#include "artemis_wrap.h"
 
 static Set *
 __insert_new_set(Record *r, Entry *e)
@@ -29,7 +33,7 @@ enum result_t {
 	/*
 	FITLER_HIT  = 0xFF, // Perhaps already seen
 	TABLE_MISS  = 0xF0, // Absent from table
-	TABLE_HIT   = 0x00, // Definitely already seen
+	TABLE_HIT   = 0x0F, // Definitely already seen
 	FILTER_MISS = 0x00, // Definitely not already seen
 	MASK        = 0xFF
 	*/
@@ -59,7 +63,7 @@ __lookup(Record *r, Entry *e, set **s) {
 
 /* FIXME FIXME FIXME */
 
-static enum result_t
+LART_PRIVATE enum result_t
 __lookup(Record *r, Entry *e, Set **s) {
 	assert(r && e && s);
 	/* handle a possible hit */
@@ -74,6 +78,3 @@ __lookup(Record *r, Entry *e, Set **s) {
 	*s = __insert_new_set(r, e);
 	return 0;
 }
-
-/* user calls this, true if? */
-

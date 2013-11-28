@@ -12,17 +12,24 @@
 #include "artemis_wrap.h"
 #include "artemis_util.h"
 
+static void
+__wrap_entry_set_free(HashTableValue value) {
+	assert(value);
+	set_free((Set *) value);
+}
+
 LART_PUBLIC Record *
 malloc_record(size_t n)
 {
+	Record *record;
 	if (!(record = malloc(sizeof(Record)))) {
 		/* FIXME malloc failed */
 		return NULL;
 	}
 	memset(record, 0x00, sizeof(Record));
-	record->filter = bloom_filter_new(__filter_size(n), &__wrap_hash_data, 5);
-	record->table = hash_table_new(&__wrap_hash_data, &__wrap_equals_data);
-	hash_table_register_free_functions(record->table, NULL, &free_set);
+	record->filter = bloom_filter_new(__filter_size(n), &__wrap_hash_entry_data, LART_MULTIPLICITY);
+	record->table = hash_table_new(&__wrap_hash_entry_data, &__wrap_equals_entry_data);
+	hash_table_register_free_functions(record->table, NULL, &__wrap_entry_set_free);
 	return record;
 }
 
