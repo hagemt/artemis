@@ -10,8 +10,6 @@ struct node_t {
 
 typedef struct node_t Node;
 
-/* */
-
 LART_PRIVATE void
 enter_state(Entry *);
 
@@ -19,6 +17,6 @@ LART_PRIVATE size_t
 count_state(void);
 
 LART_PRIVATE extern void
-dump_state(FILE *);
+dump_state(void *);
 
 #endif /* __ARTEMIS_H__ */

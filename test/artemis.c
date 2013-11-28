@@ -3,14 +3,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* pulls in everything we need from libartemis */
+#include "libartemis/entry.h"
+
+/* pulls in node decl */
+#include "artemis.h"
+
 static int
 __compare_nodes_by_entry_path(const void *n1, const void *n2)
 {
 	Entry *e1, *e2;
-	assert(p1 && p2);
+	assert(n1 && n2);
 	e1 = (* (Node **) n1) -> head;
 	e2 = (* (Node **) n2) -> head;
-	return strncmp(e1->path, e2->path, LART_PLEN_MAX);
+	return strncmp(e1->path, e2->path, LART_PATH_MAX);
 }
 
 static void __lock_state(void *);
@@ -23,13 +29,13 @@ static struct {
 	{ NULL, NULL }, 0
 };
 
-LART_PUBLIC size_t
+LART_PRIVATE size_t
 count_state(void)
 {
 	return __state.size;
 }
 
-LART_PUBLIC void
+LART_PRIVATE void
 enter_state(Entry *entry)
 {
 	Node *node;
@@ -48,16 +54,18 @@ enter_state(Entry *entry)
 	__unlock_state(&__state);
 }
 
-LART_PUBLIC void
-dump_state(FILE *file)
+LART_PRIVATE void
+dump_state(void *where)
 {
+	FILE *file;
 	Node *node, **index;
-	size_t i, n, bytes, files, dirs;
-	assert(file);
-	lock_state(&__state);
+	size_t i, n, bytes, a, b;
+	assert(where);
+	file = (FILE *) where;
+	__lock_state(&__state);
 
 	/* We'll track total size and individual counts */
-	bytes = files = dirs = i = n = 0;
+	bytes = a = b = i = n = 0;
 	for (node = &__state.root; (node = node->tail); ++n);
 
 	/* create an index of entries in path-sorted order */
@@ -74,20 +82,21 @@ dump_state(FILE *file)
 	for (i = 0; i < n; ++i) {
 		bytes += index[i]->head->size;
 		switch (index[i]->head->type) {
-		case LART_FTYPE_REG: ++files; break;
-		case LART_FTYPE_DIR: ++dirs; break;
+		case LART_FTYPE_REG: ++a; break;
+		case LART_FTYPE_DIR: ++b; break;
 		default:
 			/* FIXME use log functions! */
 			fprintf(file, "[%s] %s (%s)\n",
-					_("PATH"), index[i]->head->path, _("unknown type"));
+					("PATH"), index[i]->head->path, ("unknown type"));
 		}
 	}
-	fprintf(file, "[INFO] %.2f KB in %lu entities (%lu files, %lu dirs)\n",
-			((double) bytes) / 1024, n, files, dirs);
+	fprintf(file,
+			"[INFO] %.2f KB in %lu entities (%lu regular files, %lu others)\n",
+			((double) bytes) / 1024, n, a, b);
 
 	/* Destroy children of root */
-	while ((node = __state.root->tail)) {
-		__state.root->tail = node->tail;
+	while ((node = __state.root.tail)) {
+		__state.root.tail = node->tail;
 		free_entry(node->head);
 		#ifndef NDEBUG
 		node->head = NULL;
@@ -96,16 +105,16 @@ dump_state(FILE *file)
 		free(node);
 	}
 	/* Cleanup */
-	__state.root->head = NULL;
-	__state.root->tail = NULL;
+	__state.root.head = NULL;
+	__state.root.tail = NULL;
 	__state.size = 0;
 	free(index);
-	unlock_state(&__state);
+	__unlock_state(&__state);
 }
 
 #include <pthread.h>
 
-static pthread_attr_t
+static pthread_mutex_t
 __lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void
