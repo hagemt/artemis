@@ -1,10 +1,15 @@
 #ifndef __LART_GLOBAL_H__
 #define __LART_GLOBAL_H__
 
-#define LART_INLINE inline
+/* TODO(teh) determine build properties*/
+#define LART_INLINE
 #define LART_PRIVATE
-#define LART_PUBLIC extern
+#define LART_PUBLIC
 
+/* determines number of hash functions */
+#define LART_MULTIPLICITY (5)
+
+/* determines filename length limits */
 #define LART_PATH_MAX (4096)
 
 #endif /* __LART_GLOBAL_H__ */

@@ -3,7 +3,7 @@
 
 #include <libcalg/hash-table.h>
 
-#include "libartemis/global.h"
+#include "libartemis/constants.h"
 
 LART_PRIVATE unsigned long
 __wrap_hash_entry_data(HashTableKey);

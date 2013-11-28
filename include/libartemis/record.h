@@ -1,6 +1,8 @@
 #ifndef __LART_RECORD_H__
 #define __LART_RECORD_H__
 
+#include <stddef.h>
+
 #include <libcalg/bloom-filter.h>
 #include <libcalg/hash-table.h>
 
@@ -19,20 +21,24 @@ struct record_t {
 
 typedef struct record_t Record;
 
-extern Record *
+/* Public API */
+
+#include "libartemis/constants.h"
+
+LART_PUBLIC Record *
 malloc_record(size_t);
 
-extern void
+LART_PUBLIC void
 free_record(Record *);
 
 /* Bulk Operations */
 
 typedef void (*Visitor)(void *);
 
-extern void
+LART_PUBLIC void
 visit_sets(Record *, Visitor);
 
-extern void
+LART_PUBLIC void
 visit_each(Record *, Visitor);
 
 typedef void * (*Joiner)(void *, void *);
@@ -41,7 +47,7 @@ typedef void * (*Joiner)(void *, void *);
 
 #include "libartemis/entry.h"
 
-extern int
+LART_PUBLIC int
 record_entry(Record *, Entry *);
 
 #endif /* __LART_RECORD_H__ */

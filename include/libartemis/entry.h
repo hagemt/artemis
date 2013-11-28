@@ -34,13 +34,15 @@ typedef void (*Callback)(Entry *);
 
 /* Public API */
 
-extern Entry *
-malloc_entry(char *);
+#include "libartemis/constants.h"
 
-extern void
+LART_PUBLIC Entry *
+malloc_entry(char *, void *);
+
+LART_PUBLIC void
 free_entry(Entry *);
 
-extern void
+LART_PUBLIC void
 visit(char *, Callback);
 
 #endif /* __LART_ENTRY_H__ */
