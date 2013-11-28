@@ -30,7 +30,7 @@ clean:
 	@$(SAY) "cleaning libraries"
 	@$(RM) -fv $(LIB_SHARED)
 	@$(SAY) "cleaning executables"
-	@$(RM) -fv $(TAG)
+	@$(RM) -fv $(TAG) notify poll
 
 .PHONY: all clean
 

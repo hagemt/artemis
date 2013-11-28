@@ -51,7 +51,6 @@ int
 main(void)
 {
 	Event *e;
-	char *line;
 	int fd, wd;
 	struct data_t data;
 	for (e = event_types; e->description; ++e) {

@@ -4,10 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <editline/readline.h>
-#include <pthread.h>
 #include <sys/epoll.h>
-#include <unistd.h>
 #define MAX_EVENTS 32
 #define MAX_LINE 1024
 
@@ -49,19 +46,9 @@ accept_events(FILE *file, Listener *epoll)
 }
 
 static void *
-handle_prompt(void *data)
-{
-	ssize_t bytes, chars;
-	char buffer[MAX_LINE], *line;
-	Listener *epoll = (Listener *) data;
-	while ((line = readline(TARGET "> "))) {
-		chars = snprintf(buffer, MAX_LINE, "[LINE] %s\n", line);
-		bytes = write(epoll->fd, buffer, chars);
-		free(line);
-		assert(bytes == chars);
-	}
-	return data;
-}
+handle_prompt(void *);
+
+#include <pthread.h>
 
 static int
 listen_onfifo(const char *target)
@@ -90,17 +77,35 @@ listen_onfifo(const char *target)
 #include <signal.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 #ifndef EPOLL_FIFO
 #define EPOLL_FIFO "fifo"
 #endif /* EPOLL_FIFO */
+
+#include <editline/readline.h>
+
+static void *
+handle_prompt(void *data)
+{
+	ssize_t bytes, chars;
+	char buffer[MAX_LINE], *line;
+	Listener *epoll = (Listener *) data;
+	while ((line = readline(EPOLL_FIFO "> "))) {
+		chars = snprintf(buffer, MAX_LINE, "[LINE] %s\n", line);
+		bytes = write(epoll->fd, buffer, chars);
+		free(line);
+		assert(bytes == chars);
+	}
+	return data;
+}
 
 int
 main(int argc, char *argv[])
 {
 	struct stat info;
 	if (argc > 1) {
-		fprintf(stderr, "[USAGE] %s\n", name);
+		fprintf(stderr, "[USAGE] %s\n", *argv);
 		return EXIT_SUCCESS;
 	}
 	if (lstat(EPOLL_FIFO, &info)) {
@@ -108,9 +113,9 @@ main(int argc, char *argv[])
 				EPOLL_FIFO, strerror(errno));
 		return EXIT_FAILURE;
 	}
-	if (!S_ISFIFO(info.st_type)) {
+	if (!S_ISFIFO(info.st_mode)) {
 		fprintf(stderr, "[FATAL] %s is not a FIFO (%s)\n",
-				EPOLL_FIFO, strerrno(errno));
+				EPOLL_FIFO, strerror(errno));
 		return EXIT_FAILURE;
 	}
 	TRY(listen_onfifo, EPOLL_FIFO);
