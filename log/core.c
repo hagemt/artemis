@@ -19,13 +19,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-/* PUBLIC API */
+/* public API functions */
 
 LOG_EXTERNAL void
 __log_wrapper(LogLevel lvl, const char *info, const char *fmt, ...)
 {
 	va_list args;
 	const char *slug;
+	__log_func_t function;
 	assert(info && fmt);
 	if (lvl < log_level_get(info)) {
 		return;
@@ -42,14 +43,15 @@ __log_wrapper(LogLevel lvl, const char *info, const char *fmt, ...)
 	}
 
 	/* Determine the logging function */
-	log_func_t f = log_func_get(slug);
-	if (f) {
+	function = log_function(slug);
+	if (function) {
 		va_start(args, fmt);
 		/* FIXME(teh) make this retargetable */
-		(*f)(LOG_TARGET, slug, fmt, &args);
+		(*function)(LOG_TARGET, slug, fmt, &args);
 		va_end(args);
 	} else {
 		/* FIXME(teh) what do? */
+		LOG_TAGGED(info, slug);
 	}
 
 	/* TODO(teh) determine if this is the right decision... */

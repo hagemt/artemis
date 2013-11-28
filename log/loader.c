@@ -14,208 +14,154 @@
  * License along with libslf4c. <http://www.gnu.org/licenses/>
  */
 #include "log.h"
-
-#include <assert.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
-
-#define MAX_NAME 64
-
-struct __module_data_t {
-	char *name;
-	void *key, *value;
-	size_t count;
-};
-
-static struct __module_list_t {
-	struct __module_data_t *head;
-	struct __module_list_t *tail;
-} __modules = { NULL, NULL };
-
-typedef struct __module_data_t Module;
-typedef struct __module_list_t Node;
-
-static int __load(Module *);
-static int __free(Module *);
-
-inline static Node *
-__find_parent(char *name)
-{
-	Node *node;
-	assert(name);
-	for (node = &__modules; node->tail; node = node->tail) {
-		if (strncmp(node->tail->head->name, name, MAX_NAME) == 0) {
-			return node;
-		}
-	}
-	return NULL;
-}
+#include "module.h"
 
 static Node *
-__find_parent_or_create_child(char *name)
-{
-	Node *node = __find_parent(name);
-	if (node) {
-		return node;
-	}
-	/* Create a new node, empty except the name */
-	node = malloc(sizeof(Node));
-	if (!node) {
-		return node;
-	}
-	node->tail = NULL;
-	node->head = malloc(sizeof(Module));
-	if (!node->head) {
-		free(node);
-		node = NULL;
-		return node;
-	}
-	memset(node->head, 0x00, sizeof(Module));
-	node->head->count = strnlen(name, MAX_NAME);
-	node->head->name = malloc(node->head->count * sizeof(char));
-	if (!node->head->name) {
-		free(node->head);
-		free(node);
-		node = NULL;
-		return node;
-	}
-	strncpy(node->head->name, name, node->head->count);
-	node->head->count = 0;
-	/* Attach it */
-	node->tail = __modules.tail;
-	__modules.tail = node;
-	return &__modules;
-}
+create_attached(char *);
+
+static Node *
+find_parent(char *);
+
+static void
+remove_child(Node *, char *);
+
+/* public API functions */
 
 LOG_EXTERNAL LogFunction
 log_function_load(char *name)
 {
 	Node *node;
-	LogFunction fp = NULL;
-	node = __find_parent_or_create_child(name);
-	if (node && __load(node->tail->head) == 0) {
+	LogFunction fp = LOG_NULL;
+	if (!(node = find_parent(name))) {
+		node = create_attached(name);
+	}
+	if (node && !log_module_alpha(node->tail->head)) {
 		fp = (LogFunction) node->tail->head->value;
 		/* memcpy(&fp, node->tail->head->value, sizeof(fp)); */
 	}
 	return fp;
-}
-
-static void
-__remove_child(Node *parent, char *name)
-{
-	Node *node;
-	assert(name && parent && parent->tail && parent->tail->head->name);
-	assert(strncmp(parent->tail->head->name, name, MAX_NAME) == 0);
-	/* Clip this node */
-	node = parent->tail;
-	parent->tail = node->tail;
-	/* FIXME(teh) EXTRA: */
-	node->tail = NULL;
-	free(node->head->name);
-	free(node->head);
-	free(node);
 }
 
 LOG_EXTERNAL LogFunction
 log_function_unload(char *name)
 {
 	Node *node;
-	LogFunction fp = NULL;
-	node = __find_parent(name);
-	if (node && __free(node->tail->head) == 0) {
+	LogFunction fp = LOG_NULL;
+	node = find_parent(name);
+	if (node && !log_module_omega(node->tail->head)) {
 		fp = (LogFunction) node->tail->head->value;
 		/* memcpy(&fp, node->tail->head->value, sizeof(fp)); */
-		__remove_child(node, name);
+		remove_child(node, name);
 	}
 	return fp;
 }
 
-#ifdef IS_NOT_POSIX /* FIXME(teh) works? */
+/* log module internals */
 
-#include <windows.h>
+static Node
+__modules = NODE_EMPTY;
 
-static int
-__load(Module *module)
+#include <assert.h>
+#include <stdlib.h>
+#include <string.h>
+
+static Node *
+find_parent(char *name)
 {
-	assert(module);
-	if (!module->key) {
-		assert(module->count == 0);
-		module->key = LoadLibrary(module->name);
-		if (!module->key) return 1;
-	}
-	module->value = GetProcAddress(module->key, module->name);
-	if (!module->value) return 1;
-	++module->count;
-	return 0;
-}
-
-static int
-__free(Module *module)
-{
-	assert(module);
-	if (--module->count == 0) {
-		return FreeLibrary(name);
-	}
-	return 0;
-}
-
-#else /* POSIX */
-
-#include <dlfcn.h>
-
-static int
-__load(Module *module)
-{
-	assert(module);
-	if (!module->key) {
-		assert(module->count == 0);
-		module->key = dlopen(module->name, RTLD_LAZY | RTLD_LOCAL);
-		/* FIXME(teh) ugh... too late... dlerror() */
-		if (!module->key) {
-			fprintf(stderr, "dlerror: %s\n", dlerror());
-			return 1;
+	Node *node;
+	assert(name);
+	/* FIXME(teh) doesn't use module lock/unlock */
+	for (node = &__modules; node->tail; node = node->tail) {
+		assert(node->tail->head && node->tail->head->name);
+		if (strncmp(name, node->tail->head->name, MODULE_NAME_MAX) == 0) {
+			return node;
 		}
 	}
-	/* Load the symbol */
-	module->value = dlsym(module->key, module->name);
-	if (!module->value) {
-		fprintf(stderr, "dlerror: %s\n", dlerror());
-		return 1;
-	}
-	++module->count;
-	return 0;
+	return NULL;
 }
-
-static int
-__free(Module *module)
-{
-	assert(module);
-	if (--module->count == 0) {
-		return dlclose(module->key);
-	}
-	return 0;
-}
-
-#endif /* POSIX */
 
 static void
-__expected(int signum)
+__lock_modules(void *);
+
+static void
+__unlock_modules(void *);
+
+static Node *
+create_attached(char *name)
 {
-	fprintf(stderr, "Caught expected signal %d\n", signum);
+	Node *node;
+	assert(name);
+	/* Create a new node, empty except the name */
+	node = malloc(sizeof(Node));
+	if (!node) {
+		return NULL;
+	}
+	node->tail = NULL;
+	node->head = malloc(sizeof(Module));
+	if (!node->head) {
+		free(node);
+		return NULL;
+	}
+	memset(node->head, 0x00, sizeof(Module));
+	node->head->count = strnlen(name, MODULE_NAME_MAX);
+	node->head->name = malloc(node->head->count * sizeof(char));
+	if (!node->head->name) {
+		free(node->head);
+		free(node);
+		return NULL;
+	}
+	strncpy(node->head->name, name, node->head->count);
+	node->head->count = 0;
+	/* Attach it to the module chain */
+	__lock_modules(&__modules);
+	node->tail = __modules.tail;
+	__modules.tail = node;
+	__unlock_modules(&__modules);
+	return &__modules;
 }
 
-#include <signal.h>
+static void
+remove_child(Node *parent, char *name)
+{
+	Node *node;
+	assert(parent && parent->tail && parent->tail->head);
+	assert(name && parent->tail->head->name);
+	assert(strncmp(name, parent->tail->head->name, MODULE_NAME_MAX) == 0);
+	/* Clip this node off */
+	__lock_modules(&__modules);
+	node = parent->tail;
+	parent->tail = node->tail;
+	__unlock_modules(&__modules);
+	/* Free the node */
+	node->tail = NULL;
+	free(node->head->name);
+	free(node->head);
+	free(node);
+}
 
-int main(void) {
-	LogFunction f, g;
-	f = log_function_load("test");
-	assert(f);
-	(*f)();
-	g = log_function_unload("test");
-	assert(g);
-	assert(f == g);
-	signal(SIGSEGV, &__expected);
-	(*g)();
-	return EXIT_SUCCESS;
+#ifdef MODULE_THREADS
+
+#include <pthread.h>
+
+static pthread_mutex_t
+__module_lock = PTHREAD_MUTEX_INITIALIZER;
+
+#endif /* MODULE_THREADS */
+
+static void
+__lock_modules(void *state)
+{
+	assert(state);
+#ifdef MODULE_THREADS
+	pthread_mutex_lock(&__module_lock);
+#endif /* MODULE_THREADS*/
+}
+
+static void
+__unlock_modules(void *state)
+{
+	assert(state);
+#ifdef MODULE_THREADS
+	pthread_mutex_unlock(&__module_lock);
+#endif /* MODULE_THREADS */
 }

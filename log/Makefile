@@ -22,27 +22,29 @@ AR  := $(shell which ar)
 CC  := $(shell which gcc)
 SAY := $(shell which echo) -e "[$(TAG)]"
 
+# Build options (natural choices, totally sane)
 CFLAGS_WARNING := -Wall -Wextra -Wno-long-long -Wno-variadic-macros
+CFLAGS := -ansi -D_GNU_SOURCE $(CFLAGS_WARNING) $(CFLAGS)
+# Build options (experimental, still mostly sane)
 CFLAGS_DEBUG   := -ggdb -O0 -pedantic -DTAG="$(TAG)-dev-dbg"
 CFLAGS_RELEASE := -DNDEBUG -O3 -ffast-math -DTAG="$(TAG)-dev"
-CFLAGS         := -std=c99 -fPIC $(CFLAGS_WARNING) $(CFLAGS_$(XXX))
+CFLAGS := -fPIC $(CFLAGS_$(XXX)) $(CFLAGS)
 
 LIB_NAME    := slf4c
-LIB_SOURCES := core.c function.c level.c
+LIB_SOURCES := $(wildcard *.c)
 LIB_OBJECTS := $(LIB_SOURCES:.c=.o)
 LIB_STATIC  := lib$(LIB_NAME).a
 LIB_SHARED  := lib$(LIB_NAME).so
 
-all: $(TAG) $(LIB_SHARED)
+all: $(LIB_STATIC) $(LIB_SHARED)
 
 clean:
-	@$(RM) -fv *.o $(TAG)*
+	@$(SAY) "cleaning object files"
+	@$(RM) -fv $(LIB_OBJECTS)
+	@$(SAY) "cleaning library files"
+	@$(RM) -fv $(LIB_STATIC) $(LIB_SHARED)
 
 .PHONY: all clean
-
-$(TAG): loader.o $(LIB_STATIC)
-	@$(SAY) "STATIC" "$@"
-	@$(CC) $(CFLAGS) -L . -lslf4c -ldl $< -o $@
 
 $(LIB_STATIC): $(LIB_OBJECTS)
 	@$(SAY) "AR" "$@"
@@ -50,7 +52,7 @@ $(LIB_STATIC): $(LIB_OBJECTS)
 
 $(LIB_SHARED): $(LIB_OBJECTS)
 	@$(SAY) "LD" "$@"
-	@$(CC) $(CFLAGS) -shared -ldl $^ -o $@
+	@$(CC) $(CFLAGS) -shared $^ -o $@
 
 %.o: %.c
 	@$(SAY) "CC" "$<"

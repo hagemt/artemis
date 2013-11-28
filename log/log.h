@@ -18,10 +18,9 @@
 
 #define LOG_EXTERNAL extern
 #define LOG_INLINE inline
+#define LOG_INTERNAL
 
-#ifdef __cplusplus
-LOG_EXTERNAL "C" {
-#endif
+#define LOG_NULL ((LogFunction) 0)
 
 /* Log levels */
 
@@ -32,27 +31,11 @@ LOG_EXTERNAL "C" {
 #define LOG_LEVEL_V LOG_LEVEL_VERBOSE
 #define LOG_LEVEL_D LOG_LEVEL_DEBUG
 
+/* TODO(teh) logcat support */
 #ifdef ANDROID
 #warning "logcat (Android logging) not yet supported"
+#define LOG_CAT
 #endif
-
-enum log_lvl_t {
-	LOG_LEVEL_F    = 0xF0,
-	LOG_LEVEL_E    = 0xE0,
-	LOG_LEVEL_W    = 0x80,
-	LOG_LEVEL_I    = 0x40,
-	LOG_LEVEL_V    = 0x20,
-	LOG_LEVEL_D    = 0x10,
-	LOG_LEVEL_MAX  = 0xFF
-};
-
-typedef enum log_lvl_t LogLevel;
-
-LOG_EXTERNAL LogLevel
-log_level_get(const char *);
-
-LOG_EXTERNAL void
-log_level_set(LogLevel);
 
 /* Log properties */
 
@@ -78,8 +61,6 @@ log_level_set(LogLevel);
 #define LOG_TARGET LOG_TARGET_DEFAULT
 #endif /* !LOG_TARGET */
 
-/* Log aliases */
-
 /* native language support */
 #ifdef ENABLE_NLS
 #define _(X) gettext(X)
@@ -87,11 +68,29 @@ log_level_set(LogLevel);
 #define _(X) X
 #endif
 
-/* Simple logging facilities for teh's standard format */
-#define LOG3(X, Y, Z) \
-	(void) fprintf(LOG_TARGET, "[%s] %s (%s)\n", _(X), _(Y), _(Z))
-#define LOG_PRETTY(TAG, X) LOG3(TAG, X, __PRETTY_FUNCTION__)
-#define LOG_TAGGED(X, Y) LOG3(LOG_TAG, X, Y)
+#ifdef __cplusplus
+LOG_EXTERNAL "C" {
+#endif
+
+/* Mutable log-levels */
+
+enum log_lvl_t {
+	LOG_LEVEL_FATAL       = 0xF0,
+	LOG_LEVEL_ERROR       = 0xE0,
+	LOG_LEVEL_WARNING     = 0x80,
+	LOG_LEVEL_INFORMATION = 0x40,
+	LOG_LEVEL_VERBOSE     = 0x20,
+	LOG_LEVEL_DEBUG       = 0x10,
+	LOG_LEVEL_MAX         = 0xFF
+};
+
+typedef enum log_lvl_t LogLevel;
+
+LOG_EXTERNAL LogLevel
+log_level_get(const char *);
+
+LOG_EXTERNAL void
+log_level_set(LogLevel);
 
 /*! \brief Wrapper function (non-public API) for invocation of loggers
  *
@@ -101,14 +100,6 @@ log_level_set(LogLevel);
  */
 LOG_EXTERNAL void
 __log_wrapper(LogLevel, const char *, const char *, ...);
-
-#define LOG(LVL, FMT, ...) __log_wrapper(LVL, LOG_TAG, FMT, __VA_ARGS__)
-#define LOGF(FMT, ...) LOG(LOG_LEVEL_F, FMT, __VA_ARGS__)
-#define LOGE(FMT, ...) LOG(LOG_LEVEL_E, FMT, __VA_ARGS__)
-#define LOGW(FMT, ...) LOG(LOG_LEVEL_W, FMT, __VA_ARGS__)
-#define LOGI(FMT, ...) LOG(LOG_LEVEL_I, FMT, __VA_ARGS__)
-#define LOGV(FMT, ...) LOG(LOG_LEVEL_V, FMT, __VA_ARGS__)
-#define LOGD(FMT, ...) LOG(LOG_LEVEL_D, FMT, __VA_ARGS__)
 
 /* Log functions */
 
@@ -125,13 +116,34 @@ log_function_unload(char *);
 #include <stdarg.h>
 #include <stdio.h>
 
-typedef void (*log_func_t)(FILE *, const char *, const char *, va_list *);
+typedef void (*__log_func_t)(FILE *, const char *, const char *, va_list *);
 
-LOG_EXTERNAL log_func_t
-log_func_get(const char *slug);
+LOG_EXTERNAL __log_func_t
+log_function(const char *slug);
 
 #ifdef __cplusplus
 } /* LOG_EXTERN "C" */
 #endif /* C++ */
+
+/* Log aliases */
+
+/* Simple logging facilities for simple (standard-teh) format */
+#define LOG3(X, Y, Z) \
+	(void) fprintf(LOG_TARGET, "[%s] %s (%s)\n", _(X), _(Y), _(Z))
+#define LOG_PRETTY(X, Y) LOG3(X, Y, __PRETTY_FUNCTION__)
+#define LOG_TAGGED(Y, Z) LOG3(LOG_TAG, Y, Z)
+
+/* Simple logging facilities for level-aware (standard) format */
+#define LOG(LVL, FMT, ...) __log_wrapper(LVL, LOG_TAG, FMT, __VA_ARGS__)
+#define LOGF(FMT, ...) LOG(LOG_LEVEL_F, FMT, __VA_ARGS__)
+#define LOGE(FMT, ...) LOG(LOG_LEVEL_E, FMT, __VA_ARGS__)
+#define LOGW(FMT, ...) LOG(LOG_LEVEL_W, FMT, __VA_ARGS__)
+#define LOGI(FMT, ...) LOG(LOG_LEVEL_I, FMT, __VA_ARGS__)
+#define LOGV(FMT, ...) LOG(LOG_LEVEL_V, FMT, __VA_ARGS__)
+#define LOGD(FMT, ...) LOG(LOG_LEVEL_D, FMT, __VA_ARGS__)
+
+#define LOG_IS_HANDLE(X) (X != LOG_NULL)
+
+#define LOG_CALL_HANDLE(X, ...) (*X)(__VA_ARGS__)
 
 #endif /* __LOG_H__ */
