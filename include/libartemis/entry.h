@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <time.h>
 
+/* TODO(teh): profile this */
 #define LART_ENTRY_DLEN (sizeof(unsigned long) << 6)
 
 enum type_t {
@@ -13,36 +14,29 @@ enum type_t {
 };
 
 struct entry_t {
-	char *path; /* <-- only required field, TODO doc */
+	char *path; /* <-- require only this field, TODO doc */
 	size_t size; /* FIXME make this off_t, or larger type */
 	enum type_t type;
 	time_t atime, ctime, mtime;
+	/* hold a data sample, possibly its hash and a global checksum */
 	unsigned char *data, *hash, *sum;
 };
 
-/* TODO(teh) remove...?
-struct node_t {
-	struct entry_t *head;
-	struct node_t *tail;
-};
-typedef struct node_t Node;
-*/
+/* Public API */
 
 typedef enum type_t Type;
 typedef struct entry_t Entry;
-typedef void (*Callback)(Entry *);
-
-/* Public API */
+typedef void (*EntryCrawlback)(Entry *);
 
 #include "libartemis/constants.h"
 
 LART_PUBLIC Entry *
-malloc_entry(char *, void *);
+entry_new(char *, void *);
 
 LART_PUBLIC void
-free_entry(Entry *);
+entry_free(Entry *);
 
 LART_PUBLIC void
-visit(char *, Callback);
+entry_crawl(char *, EntryCrawlback);
 
 #endif /* __LART_ENTRY_H__ */

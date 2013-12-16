@@ -1,8 +1,6 @@
 #ifndef __LART_RECORD_H__
 #define __LART_RECORD_H__
 
-#include <stddef.h>
-
 #include <libcalg/bloom-filter.h>
 #include <libcalg/hash-table.h>
 
@@ -12,7 +10,6 @@
  * When short hashes collide, it triggers a full hash of the entry.
  * The table relates full hashes (keyed on entry) to sets of known duplicates.
  * Entries are only hashed, never freed by this interface.
- * However, the table' duplicate must be freed.
  */
 struct record_t {
 	BloomFilter *filter;
@@ -21,15 +18,17 @@ struct record_t {
 
 typedef struct record_t Record;
 
+#include <stddef.h>
+
 /* Public API */
 
 #include "libartemis/constants.h"
 
 LART_PUBLIC Record *
-malloc_record(size_t);
+record_new(size_t);
 
 LART_PUBLIC void
-free_record(Record *);
+record_free(Record *);
 
 /* Bulk Operations */
 
@@ -41,6 +40,7 @@ visit_sets(Record *, Visitor);
 LART_PUBLIC void
 visit_each(Record *, Visitor);
 
+/* TODO(teh): join functionality */
 typedef void * (*Joiner)(void *, void *);
 
 /* The whole point: */
