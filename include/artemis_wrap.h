@@ -6,15 +6,15 @@
 #include "libartemis/constants.h"
 
 LART_PRIVATE unsigned long
-__wrap_hash_entry_data(HashTableKey);
+wrap_hash_entry_data(HashTableKey);
 
 LART_PRIVATE unsigned long
-__wrap_hash_entry_path(HashTableKey);
+wrap_hash_entry_path(HashTableKey);
 
 LART_PRIVATE int
-__wrap_equals_entry_data(HashTableKey, HashTableKey);
+wrap_equals_entry_data(HashTableKey, HashTableKey);
 
 LART_PRIVATE int
-__wrap_equals_entry_path(HashTableKey, HashTableKey);
+wrap_equals_entry_path(HashTableKey, HashTableKey);
 
 #endif /* __LART_WRAP_H__ */
