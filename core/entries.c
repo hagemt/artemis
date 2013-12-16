@@ -1,50 +1,32 @@
 #include "libartemis/entry.h"
 
+#include "artemis_data.h"
+
 #include <assert.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 LART_PUBLIC void
-free_entry(Entry *entry)
+entry_free(Entry *entry)
 {
 	assert(entry && entry->path);
+	/* TODO(teh) log this call */
+	free_data(entry);
+	entry->data = NULL;
 	free(entry->path);
 	entry->path = NULL;
-	if (entry->data) {
-		free(entry->data);
-	}
 	free(entry);
 	/* TODO(teh) other fields? */
 }
 
-static void
-__ensure_data(Entry *entry)
-{
-	FILE *file;
-	size_t bytes;
-	assert(entry && entry->data);
-	if (!(file = fopen(entry->path, "r"))) {
-		/* FIXME fopen failed */
-		return;
-	}
-	bytes = fread(entry->data, LART_ENTRY_DLEN, 1, file);
-	if (bytes != LART_ENTRY_DLEN) {
-		/* FIXME bytes lost */
-	}
-	if (fclose(file)) {
-		/* FIXME fclose failed */
-	}
-}
+#include <string.h>
 
+/* FIXME(teh) make 100% portable? */
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <dirent.h>
 #include <unistd.h>
 
-/* FIXME(teh) fix portability for header */
 LART_PUBLIC Entry *
-malloc_entry(char *path, void *data)
+entry_new(char *path, void *data)
 {
 	size_t len;
 	Entry *entry;
@@ -73,8 +55,9 @@ malloc_entry(char *path, void *data)
 	} else {
 		entry->type = LART_FTYPE_MAX;
 	}
+	/* delegate to handle data */
 	if ((entry->data = malloc(LART_ENTRY_DLEN))) {
-		__ensure_data(entry);
+		fill_data(entry);
 	}
 	return entry;
 }
