@@ -1,21 +1,32 @@
 #include <assert.h>
+#include <stdlib.h>
 
 #include "libartemis/entry.h"
 
-#define LART_PUBLIC
-
 LART_PUBLIC Entry *
-malloc_entry(char *path, void *data) {
+entry_new(char *path, void *data)
+{
+	Entry *entry;
 	assert(path && data);
-	return NULL;
-}
-
-LART_PUBLIC void
-free_entry(Entry *entry) {
+	entry = malloc(sizeof(Entry));
 	assert(entry);
+	return entry;
 }
 
 LART_PUBLIC void
-visit(char *path, Callback callback) {
+entry_free(Entry *entry)
+{
+	assert(entry);
+	free(entry);
+	entry = NULL;
+}
+
+#include <stdio.h>
+
+LART_PUBLIC void
+entry_crawl(char *path, EntryCrawlback hook)
+{
 	assert(path && callback);
+	printf(stderr, "[%s] %s (%s)\n",
+			__PRETTY_FUNCTION__, path, "dummy visitor");
 }
