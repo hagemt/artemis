@@ -1,10 +1,9 @@
 TAG := tpool
 SAY := $(shell which echo) -e "[$(TAG)]"
 
-CFLAGS_INCLUDE := -nostdinc -I include -I libc/include -I /opt/include
-CFLAGS_INCLUDE := $(CFLAGS_INCLUDE) -I /opt/lib/gcc/x86_64-unknown-linux-gnu/4.8.0/include
+CFLAGS_INCLUDE := -nostdinc -I include -I ../libc/include -I /opt/include
 CFLAGS_INCLUDE := $(CFLAGS_INCLUDE) $(shell pkg-config libcalg-1.0 --cflags)
-CFLAGS_LIBRARY := -nostdlib -L libc/lib -L /opt/lib64 -lc -lgcc -lpthread
+CFLAGS_LIBRARY := -nostdlib -L ../libc/lib -L /opt/lib64 -lc -lgcc -lpthread
 CFLAGS_LIBRARY := $(CFLAGS_LIBRARY) $(shell pkg-config libcalg-1.0 --libs)
 
 CFLAGS_WARNING := -Wall -Wextra -Wno-long-long -Wno-variadic-macros
