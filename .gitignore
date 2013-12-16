@@ -16,3 +16,12 @@
 *.exe
 *.out
 *.app
+
+# directory exists only for testing
+/test/dir
+# main log file
+/artemis.log
+# future submodules?
+/libc
+/libcalg
+/linux
