@@ -3,7 +3,7 @@
 #include "libartemis/entry.h"
 
 LART_INLINE static Entry *
-__as_entry(void *ptr)
+as_entry(void *ptr)
 {
 	assert(ptr);
 	return (Entry *) ptr;
@@ -14,12 +14,12 @@ __as_entry(void *ptr)
 #include <libcalg/hash-table.h>
 
 LART_PRIVATE unsigned long
-__wrap_hash_entry_data(HashTableKey key)
+wrap_hash_entry_data(HashTableKey key)
 {
 	void *data;
 	size_t bytes;
 	unsigned long result = 0;
-	data = __as_entry(key)->data;
+	data = as_entry(key)->data;
 	/* TODO(teh) better hash function for binary data */
 	for (bytes = 0; bytes < LART_ENTRY_DLEN; bytes += sizeof(unsigned long)) {
 		result ^= * (unsigned long *) data;
@@ -29,22 +29,22 @@ __wrap_hash_entry_data(HashTableKey key)
 }
 
 LART_PRIVATE unsigned long
-__wrap_hash_entry_path(HashTableKey key)
+wrap_hash_entry_path(HashTableKey key)
 {
 	/* TODO(teh) consider using nocase */
-	return string_hash(__as_entry(key)->path);
+	return string_hash(as_entry(key)->path);
 }
 
 #include <string.h>
 
 LART_PRIVATE int
-__wrap_equals_entry_data(HashTableKey k1, HashTableKey k2)
+wrap_equals_entry_data(HashTableKey k1, HashTableKey k2)
 {
-	return memcmp(__as_entry(k1)->data, __as_entry(k2)->data, LART_ENTRY_DLEN);
+	return memcmp(as_entry(k1)->data, as_entry(k2)->data, LART_ENTRY_DLEN);
 }
 
 LART_PRIVATE int
-__wrap_equals_entry_path(HashTableKey k1, HashTableKey k2)
+wrap_equals_entry_path(HashTableKey k1, HashTableKey k2)
 {
-	return string_equal(__as_entry(k1)->path, __as_entry(k2)->path);
+	return string_equal(as_entry(k1)->path, as_entry(k2)->path);
 }

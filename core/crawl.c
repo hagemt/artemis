@@ -1,48 +1,71 @@
 #include "libartemis/entry.h"
 
 #include <assert.h>
-#include <stdio.h>
+
+static void
+expand_path(char *, EntryCrawlback);
+
+static void
+entry_crawlback(Entry *entry)
+{
+	assert(entry);
+	/* TODO(teh): expand stub */
+}
 
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <dirent.h>
 #include <unistd.h>
 
+LART_PUBLIC void
+entry_crawl(char *path, EntryCrawlback hook)
+{
+	Entry *entry;
+	struct stat info;
+	assert(path);
+	if (lstat(path, &info)) {
+		/* FIXME lstat failed */
+		return;
+	}
+	/* recursive case: expand on this path */
+	if (S_ISDIR(info.st_mode)) {
+		expand_path(path, hook);
+		return;
+	}
+	/* leaf case: create an entry and crawlback */
+	entry = entry_new(path, &info);
+	if (hook) {
+		(*hook)(entry);
+		return;
+	}
+	/* FIXME bad idea? */
+	entry_crawlback(entry);
+	entry_free(entry);
+}
+
+#include <stdio.h>
+
+#include <dirent.h>
+
 static void
-__expand(char *path, Callback func)
+expand_path(char *path, EntryCrawlback func)
 {
 	DIR *dir;
-	struct dirent *entry;
+	struct dirent *node;
+	/* TODO(teh): profile this */
 	char buffer[LART_PATH_MAX];
 	if (!(dir = opendir(path))) {
 		/* FIXME opendir failed */
 		return;
 	}
-	while ((entry = readdir(dir))) {
-		/* FIXME more elegantly? */
-		if (entry->d_name[0] != '.') {
-			snprintf(buffer, LART_PATH_MAX, "%s/%s", path, entry->d_name);
+	while ((node = readdir(dir))) {
+		/* FIXME more elegant check? */
+		if (node->d_name[0] != '.') {
+			snprintf(buffer, LART_PATH_MAX, "%s/%s", path, node->d_name);
 			buffer[LART_PATH_MAX - 1] = '\0';
-			visit(buffer, func);
+			entry_crawl(buffer, func);
 		}
 	}
 	if (closedir(dir)) {
 		/* FIXME closedir failed */
-	}
-}
-
-LART_PUBLIC void
-visit(char *path, Callback func)
-{
-	struct stat info;
-	assert(path && func);
-	if (lstat(path, &info)) {
-		/* FIXME lstat failed */
-		return;
-	}
-	if (S_ISREG(info.st_mode)) {
-		(*func)(malloc_entry(path, &info));
-	} else if (S_ISDIR(info.st_mode)) {
-		__expand(path, func);
 	}
 }
