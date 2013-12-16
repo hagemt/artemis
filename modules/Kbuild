@@ -1,0 +1,8 @@
+obj-m := artemis.o
+
+artemis-y :=
+artemis-y += artemis/init.o
+artemis-y += artemis/cleanup.o
+artemis-y += artemis/device.o
+
+ccflags-y := -I$(src)/include

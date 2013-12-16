@@ -1,0 +1,41 @@
+TAG := lkm
+XXX := DEBUG
+
+CC  := $(shell which gcc)
+SAY := $(shell which echo) -e "[$(TAG)]"
+
+# Build options necessary for creating LKM
+CFLAGS_INCLUDE := -nostdinc -I /usr/src/linux/include
+CFLAGS := $(CFLAGS_INCLUDE) $(CFLAGS)
+
+# Build options (natural choices, totally sane)
+CFLAGS_WARNING := -Wall -Wextra -Wno-long-long -Wno-variadic-macros
+CFLAGS := -ansi -D_GNU_SOURCE $(CFLAGS_WARNING) $(CFLAGS)
+
+# Build options (experimental, still mostly sane)
+CFLAGS_DEBUG   := -ggdb -O0 -pedantic -DTAG="$(TAG)-dev-dbg"
+CFLAGS_RELEASE := -DNDEBUG -O3 -ffast-math -DTAG="$(TAG)-dev"
+CFLAGS := $(CFLAGS_$(XXX)) $(CFLAGS)
+
+# Build options for module
+MODULE_NAME := artemis
+LKM_SOURCES := $(wildcard *.c)
+LKM_OBJECTS := $(LIB_SOURCES:.c=.o)
+
+all: $(MODULE_NAME).ko
+
+clean:
+	@$(SAY) "cleaning object files"
+	@$(RM) -fv $(LKM_OBJECTS)
+	@$(SAY) "cleaning module files"
+	@$(RM) -fv $(MODULE_NAME).ko
+
+.PHONY: all clean
+
+$(MODULE_NAME).ko: artemis.o
+	@$(SAY) "LD" "$@"
+	@$(CC) $(CFLAGS) "$<" -o "$@"
+
+%.o: %.c
+	@$(SAY) "CC" "$<"
+	@$(CC) $(CFLAGS) -c "$<" -o "$@"
