@@ -1,42 +1,36 @@
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
-/* pulls in everything we need from libartemis */
-#include "libartemis/entry.h"
-
-/* pulls in node decl */
 #include "artemis.h"
 
-static int
-__compare_nodes_by_entry_path(const void *n1, const void *n2)
-{
-	Entry *e1, *e2;
-	assert(n1 && n2);
-	e1 = (* (Node **) n1) -> head;
-	e2 = (* (Node **) n2) -> head;
-	return strncmp(e1->path, e2->path, LART_PATH_MAX);
-}
-
-static void __lock_state(void *);
-static void __unlock_state(void *);
+#include <assert.h>
+#include <stddef.h>
+#include <stdlib.h>
 
 static struct {
 	Node root;
 	size_t size;
+	Record *store;
 } __state = {
-	{ NULL, NULL }, 0
+	{ NULL, NULL }, 0, NULL
 };
 
+LART_INLINE static void
+__state_lock(void *);
+
+LART_INLINE static void
+__state_unlock(void *);
+
+static int
+__compare_nodes_by_entry_path(const void *, const void *);
+
+/* Private API */
+
 LART_PRIVATE size_t
-count_state(void)
+state_count(void)
 {
 	return __state.size;
 }
 
 LART_PRIVATE void
-enter_state(Entry *entry)
+state_enter(Entry *entry)
 {
 	Node *node;
 	assert(entry);
@@ -47,26 +41,32 @@ enter_state(Entry *entry)
 	}
 	node->head = entry;
 	/* and track it, within the global state */
-	__lock_state(&__state);
+	__state_lock(&__state);
+	if (!__state.store) {
+		__state.store = record_new(1 << 20);
+	}
 	node->tail = __state.root.tail;
 	__state.root.tail = node;
 	++__state.size;
-	__unlock_state(&__state);
+	__state_unlock(&__state);
 }
 
+#include <stdio.h>
+
 LART_PRIVATE void
-dump_state(void *where)
+state_dump(void *target)
 {
 	FILE *file;
 	Node *node, **index;
 	size_t i, n, bytes, a, b;
-	assert(where);
-	file = (FILE *) where;
-	__lock_state(&__state);
+	assert(target);
+	file = (FILE *) target;
+	__state_lock(&__state);
 
 	/* We'll track total size and individual counts */
 	bytes = a = b = i = n = 0;
 	for (node = &__state.root; (node = node->tail); ++n);
+	assert(__state.size == n);
 
 	/* create an index of entries in path-sorted order */
 	if (!(index = malloc(sizeof(node) * n))) {
@@ -91,42 +91,57 @@ dump_state(void *where)
 		}
 	}
 	fprintf(file,
-			"[INFO] %.2f KB in %lu entities (%lu regular files, %lu others)\n",
+			"[DEBUG] %.2f KB in %lu entities (%lu regular files, %lu others)\n",
 			((double) bytes) / 1024, n, a, b);
 
 	/* Destroy children of root */
 	while ((node = __state.root.tail)) {
 		__state.root.tail = node->tail;
-		free_entry(node->head);
-		#ifndef NDEBUG
-		node->head = NULL;
-		node->tail = NULL;
-		#endif /* DEBUG */
+		entry_free(node->head);
 		free(node);
+		--__state.size;
 	}
-	/* Cleanup */
-	__state.root.head = NULL;
-	__state.root.tail = NULL;
-	__state.size = 0;
+	assert(__state.size == 0);
+	assert(__state.root.head == NULL);
+	assert(__state.root.tail == NULL);
+	if (__state.store) {
+		record_free(__state.store);
+	}
+	__state_unlock(&__state);
 	free(index);
-	__unlock_state(&__state);
 }
+
+/* extraneous functions */
+
+#include <string.h>
+
+static int
+__compare_nodes_by_entry_path(const void *n1, const void *n2)
+{
+	Entry *e1, *e2;
+	assert(n1 && n2);
+	e1 = (* (Node **) n1) -> head;
+	e2 = (* (Node **) n2) -> head;
+	return strncmp(e1->path, e2->path, LART_PATH_MAX);
+}
+
+/* for synchronicity */
 
 #include <pthread.h>
 
 static pthread_mutex_t
-__lock = PTHREAD_MUTEX_INITIALIZER;
+__state_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void
-__lock_state(void *state)
+__state_lock(void *state)
 {
 	assert(state);
-	pthread_mutex_lock(&__lock);
+	pthread_mutex_lock(&__state_mutex);
 }
 
 static void
-__unlock_state(void *state)
+__state_unlock(void *state)
 {
 	assert(state);
-	pthread_mutex_unlock(&__lock);
+	pthread_mutex_unlock(&__state_mutex);
 }

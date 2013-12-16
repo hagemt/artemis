@@ -3,6 +3,19 @@
 
 #include "libartemis.h"
 
+/* persistent state */
+
+LART_PRIVATE void
+state_enter(Entry *);
+
+LART_PRIVATE size_t
+state_count(void);
+
+LART_PRIVATE extern void
+state_dump(void *);
+
+/* nodes in state */
+
 struct node_t {
 	struct entry_t *head;
 	struct node_t *tail;
@@ -10,13 +23,6 @@ struct node_t {
 
 typedef struct node_t Node;
 
-LART_PRIVATE void
-enter_state(Entry *);
-
-LART_PRIVATE size_t
-count_state(void);
-
-LART_PRIVATE extern void
-dump_state(void *);
+#include "tpool.h"
 
 #endif /* __ARTEMIS_H__ */
