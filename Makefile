@@ -2,7 +2,7 @@ TAG := artemis
 SAY := $(shell which echo) -e "[$(TAG)]"
 
 CFLAGS_INCLUDE := -I include -I log $(shell pkg-config libcalg-1.0 --cflags)
-CFLAGS_LIBRARY := -L log $(shell pkg-config libcalg-1.0 --libs) -lpthread
+CFLAGS_LIBRARY := -L log -L tpool $(shell pkg-config libcalg-1.0 --libs)
 CFLAGS_WARNING := -Wall -Wextra -Wno-long-long -Wno-variadic-macros
 CFLAGS := $(CFLAGS_INCLUDE) $(CFLAGS_LIBRARY) $(CFLAGS_WARNING) $(CFLAGS)
 CFLAGS_DEBUG   := -ggdb -O0 -pedantic
@@ -26,7 +26,7 @@ notify: core/etc/inotify.o
 
 clean:
 	@$(SAY) "cleaning object files"
-	@$(RM) -fv core/*.o test/*.o
+	@$(RM) -fv core/*.o core/etc/*.o test/*.o
 	@$(SAY) "cleaning libraries"
 	@$(RM) -fv $(LIB_SHARED)
 	@$(SAY) "cleaning executables"
@@ -34,14 +34,14 @@ clean:
 
 .PHONY: all clean
 
-$(TAG): core/crawl.o core/entry.o test/artemis.o test/main.o
+$(TAG): $(LIB_SHARED) test/main.o test/state.o
 	@$(SAY) "XX" "$@"
-	@$(CC) $(CFLAGS) $^ -o $@
+	@$(CC) $(CFLAGS) $^ -o "$@" # -llog -ltpool
 
 $(LIB_SHARED): $(LIB_OBJECTS)
 	@$(SAY) "LD" "$@"
-	@$(CC) $(CFLAGS) -shared $^ -o $@
+	@$(CC) $(CFLAGS) -shared $^ -o "$@" -lpthread
 
 %.o: %.c
 	@$(SAY) "CC" "$<"
-	@$(CC) $(CFLAGS) -c $< -o $@
+	@$(CC) $(CFLAGS) -c "$<" -o "$@"
